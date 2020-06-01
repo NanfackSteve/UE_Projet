@@ -1,8 +1,37 @@
 import matplotlib.pyplot as plt
 import numpy as np
-import math
 import random
+import math
 
+#-------------------------- FONCTIONS ------------------------------------------------
+
+#--------------------- MATRICE DE CORRELATION ----------------------------------------
+
+def se_corr(x, y, lxy):
+    """Square exponential correlation kernel or Gaussian kernel in 2D
+    x and y   -- vector of coordinates
+    lx and ly -- decorrelation lenght scale
+    In this example, the decorrelation lenght scale is constant.
+    However, in the general case, the decorrelation lenght scale is not constant. It changes from one point to another.
+    """
+    n = len(x)
+    m = len(y)
+    C = np.zeros((n,m,n,m,)) #matrice de dimension 4
+    two_lxy2 = 2.0*lxy*lxy
+
+    for i in range(n):
+        for j in range(m):
+            for k in range(n):
+                for l in range(m):
+                    distx = x[i] - x[k]
+                    disty = y[j] - y[l]
+                    C[i,j,k,l] = np.exp( -(distx**2 + disty**2)/two_lxy2 )
+
+    return C
+
+#-------------------- NORMALISATION DE LA MATRICE -----------------------------------
+
+#encore a modifier
 def make_simple_covariance(C):
     """Make a simple covariance by normalizing a correlation matrix.
     this builds a pseudo covariance that can be used for Gaussian denoising
@@ -16,52 +45,13 @@ def make_simple_covariance(C):
     B = np.dot( W, np.dot( C, W ) )
     return B
 
+#------------- INITIALISATION DES VARIABLES --------------------------
+
 #construction des Matrices X et Y
-x, y = np.meshgrid(np.linspace(0,1,10), np.linspace(0,1,10)) 
-#Calcul de d
-d = np.sqrt(x*x+y*y)
-sigma, mu = 1.0, 0.0
-#utilisation du Gausian Kernel for 2D Pbs
-g = np.exp(-( (d-mu)**2 / ( 2.0 * sigma**2 ) ) )
+x, y = np.linspace(0,1,10), np.linspace(0,1,10) 
+dCoordx = x[1]-x[0]
+dCoordy = y[1]-y[0] 
+lxy = 10.0*dCoordx*dCoordy
 
-print("2D Gaussian-like array:\n")
-#print(g)
-
-B = make_simple_covariance(g)
-#print("Affiche B:\n",B)
-
-# generating Gaussian noise of mean 0 and standard deviation 0.2
-rnd = np.array( [random.gauss(0., 0.2) for _ in x] )
-#print(rnd)
-
-# making a Sine wave
-sinx = np.array([ math.sin( 2.*math.pi*(i-0.5) ) for i in x[0,:]] )
-noisy = sinx + rnd
-
-# Denoising
-denoised = np.dot(B, noisy)
-
-fig, axs = plt.subplots(1, 2)
-ax = axs[0]
-ax.plot(x[0,:], noisy, "r--", lw = 2.0, label="Noisy")
-ax.plot(x[0,:], sinx, "g-", lw = 4.0, label="Truth")
-ax.plot(x[0,:], denoised, "k-", lw = 2.0, label="denoised")
-ax.legend( loc=3 )
-#plt.ylim( 0., 1.2 )
-ax.set_title('Random and correlated')
-
-
-ax = axs[1]
-cplot = ax.contourf(x, y, g)
-#ax.axis('equal')
-ax.set_aspect('equal', 'box')
-ax.set_xlabel('X')
-ax.set_ylabel('Y')
-ax.set_title('SE correlation')
-fig.colorbar(cplot, shrink=0.5, aspect=5)
-
-
-plt.show()
-plt.close()
-
-exit()
+C = se_corr(x, y, lxy) #obtention de la matrix de correlation
+print(C)
